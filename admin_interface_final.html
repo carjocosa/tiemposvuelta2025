@@ -173,7 +173,7 @@ function renderPilotos() {
 function resetDatos() {
   if (confirm("¿Estás seguro de eliminar todos los datos de rally?")) {
     localStorage.removeItem("rallyData");
-    rallyData = { tramos: ["SS1", "SS2", "SS3"], pilotos: [] };
+    rallyData = { tramos: ["SS", "TC1", "TC2", "TC3", "TC4", "TC5", "TC6", "TC7", "TC8", "TC9", "TC10"], pilotos: [] };
     posicionesAnteriores = [];
     guardar();
   }
