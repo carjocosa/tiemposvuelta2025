@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rally Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Roboto', sans-serif; }
+    body { background-color: #111; color: #eee; padding: 20px; }
+    header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    header img {
+      height: 40px;
+      margin-right: 10px;
+    }
+    table { width: 100%; border-collapse: collapse; background-color: #222; color: #fff; margin-top: 20px; }
+    th, td { border: 1px solid #444; padding: 8px; text-align: center; }
+    th { background-color: #333; }
+    .up { color: lightgreen; }
+    .down { color: red; }
+    .same { color: gray; }
+    footer {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 14px;
+      color: #888;
+    }
+    .watermark {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.2);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="https://via.placeholder.com/120x40?text=LOGO" alt="Logo">
+    <h1>📊 Resultados Generales Rally</h1>
+  </header>
+
+  <label>Filtrar por tramo: </label>
+  <select id="tramoFiltro"></select>
+  <label>Filtrar por categoría: </label>
+  <select id="categoriaFiltro"></select>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Piloto</th>
+        <th>Copiloto</th>
+        <th># Auto</th>
+        <th>Vehículo</th>
+        <th>Categoría</th>
+        <th>Total</th>
+        <th>Dif. Líder</th>
+      </tr>
+    </thead>
+    <tbody id="resultados"></tbody>
+  </table>
+
+  <div class="watermark" id="marcaAgua">Marca de agua - <span id="horaActual">--:--:--</span></div>
+  <footer>Desarrollado por Tu Nombre o Empresa</footer>
+
+<script>
+function tiempoASegundos(t) {
+  if (!t) return Infinity;
+  const [m, s] = t.split(":").map(Number);
+  return m * 60 + s;
+}
+function segundosATiempo(s) {
+  if (!isFinite(s)) return "-";
+  const m = Math.floor(s / 60);
+  const ss = String(s % 60).padStart(2, '0');
+  return `${m}:${ss}`;
+}
+function cargarDatos() {
+  const data = JSON.parse(localStorage.getItem("rallyData")) || { pilotos: [], tramos: [] };
+  const tbody = document.getElementById("resultados");
+  const tramoFiltro = document.getElementById("tramoFiltro");
+  const categoriaFiltro = document.getElementById("categoriaFiltro");
+  const tramoSeleccionado = tramoFiltro?.value || "todos";
+  const categoriaSeleccionada = categoriaFiltro?.value || "todas";
+
+  if (tramoFiltro && tramoFiltro.innerHTML === "") {
+    tramoFiltro.innerHTML = '<option value="todos">Todos</option>';
+    data.tramos.forEach(t => {
+      tramoFiltro.innerHTML += '<option value="' + t + '">' + t + '</option>';
+    });
+  }
+  if (categoriaFiltro && categoriaFiltro.innerHTML === "") {
+    categoriaFiltro.innerHTML = '<option value="todas">Todas</option>';
+    const categoriasUnicas = [...new Set(data.pilotos.map(p => p.categoria))];
+    categoriasUnicas.forEach(c => {
+      if (c) categoriaFiltro.innerHTML += '<option value="' + c + '">' + c + '</option>';
+    });
+  }
+
+  let tabla = data.pilotos
+    .filter(p => categoriaSeleccionada === "todas" || p.categoria === categoriaSeleccionada)
+    .map(p => {
+      let tiempoTotal = 0;
+      if (tramoSeleccionado === "todos") {
+        tiempoTotal = Object.values(p.tiempos || {}).reduce((acc, t) => acc + tiempoASegundos(t), 0);
+      } else {
+        tiempoTotal = tiempoASegundos(p.tiempos?.[tramoSeleccionado]);
+      }
+      return { ...p, total: tiempoTotal };
+    });
+
+  tabla.sort((a, b) => a.total - b.total);
+  const lider = tabla[0]?.total || 0;
+  tbody.innerHTML = "";
+  tabla.forEach((p, i) => {
+    const dif = p.total - lider;
+    tbody.innerHTML += `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${p.nombre}</td>
+        <td>${p.copiloto || "-"}</td>
+        <td>${p.auto}</td>
+        <td>${p.vehiculo}</td>
+        <td>${p.categoria || "-"}</td>
+        <td>${segundosATiempo(p.total)}</td>
+        <td>${dif ? "+" + segundosATiempo(dif) : "–"}</td>
+      </tr>
+    `;
+  });
+}
+document.getElementById("tramoFiltro").addEventListener("change", cargarDatos);
+document.getElementById("categoriaFiltro").addEventListener("change", cargarDatos);
+cargarDatos();
+
+function actualizarHora() {
+  const now = new Date();
+  const hora = now.toLocaleTimeString();
+  document.getElementById("horaActual").textContent = hora;
+}
+setInterval(actualizarHora, 1000);
+actualizarHora();
+</script>
+</body>
+</html>
