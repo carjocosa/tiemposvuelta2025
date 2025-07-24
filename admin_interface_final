@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Administrador Rally</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Roboto', sans-serif; }
+    body { background-color: #f7f7f7; padding: 20px; }
+    header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    header img {
+      height: 40px;
+      margin-right: 10px;
+    }
+    input, select, button { margin: 5px; padding: 8px; font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #aaa; padding: 8px; text-align: center; }
+    th { background-color: #ddd; }
+    .up { color: green; }
+    .down { color: red; }
+    .same { color: gray; }
+    footer {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 14px;
+      color: #888;
+    }
+    .watermark {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      font-size: 12px;
+      color: rgba(0,0,0,0.1);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="https://via.placeholder.com/120x40?text=LOGO" alt="Logo">
+    <h1>🏁 Administrador de Tiempos Rally</h1>
+  </header>
+
+<h3>➕ Agregar Piloto</h3>
+<form id="formAgregar">
+  <input type="text" id="nombre" placeholder="Piloto" required>
+  <input type="text" id="copiloto" placeholder="Copiloto" required>
+  <input type="text" id="auto" placeholder="# Auto" required>
+  <input type="text" id="vehiculo" placeholder="Vehículo" required>
+  <input type="text" id="categoria" placeholder="Categoría" required>
+  <button type="submit">Agregar</button>
+</form>
+
+<h3>⏱️ Ingresar Tiempos por Tramo</h3>
+<form id="formTiempo">
+  <select id="pilotoSelect"></select><br>
+  <select id="tramoSelect"></select>
+  <input type="text" id="tiempo" placeholder="mm:ss" required>
+  <button type="submit">Guardar Tiempo</button>
+</form>
+
+<h3>📋 Tabla de Pilotos</h3>
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Piloto</th>
+      <th>Copiloto</th>
+      <th># Auto</th>
+      <th>Vehículo</th>
+      <th>Categoría</th>
+      <th>Total</th>
+      <th>Dif. con líder</th>
+      <th>Mov.</th>
+    </tr>
+  </thead>
+  <tbody id="tablaPilotos"></tbody>
+  <tfoot>
+    <tr>
+      <td colspan="9">
+        <button onclick="resetDatos()">🗑️ Reiniciar Datos</button>
+      </td>
+    </tr>
+  </tfoot>
+</table>
+
+<div class="watermark" id="marcaAgua">Marca de agua - <span id="horaActual">--:--:--</span></div>
+<footer>Desarrollado por Tu Nombre o Empresa</footer>
+
+<script>
+let rallyData = JSON.parse(localStorage.getItem("rallyData")) || {
+  tramos: ["SS1", "SS2", "SS3"],
+  pilotos: []
+};
+let posicionesAnteriores = [];
+
+function guardar() {
+  localStorage.setItem("rallyData", JSON.stringify(rallyData));
+  renderPilotos();
+  renderSelects();
+}
+
+function renderSelects() {
+  const pilotoSelect = document.getElementById("pilotoSelect");
+  const tramoSelect = document.getElementById("tramoSelect");
+  pilotoSelect.innerHTML = "";
+  tramoSelect.innerHTML = "";
+  rallyData.pilotos.forEach(p => {
+    pilotoSelect.innerHTML += `<option value="${p.id}">${p.nombre} (#${p.auto})</option>`;
+  });
+  rallyData.tramos.forEach(t => {
+    tramoSelect.innerHTML += `<option value="${t}">${t}</option>`;
+  });
+}
+
+function tiempoASegundos(t) {
+  if (!t) return Infinity;
+  const [m, s] = t.split(":").map(Number);
+  return m * 60 + s;
+}
+
+function segundosATiempo(s) {
+  if (!isFinite(s)) return "-";
+  const m = Math.floor(s / 60);
+  const ss = String(s % 60).padStart(2, '0');
+  return `${m}:${ss}`;
+}
+
+function renderPilotos() {
+  const tbody = document.getElementById("tablaPilotos");
+  tbody.innerHTML = "";
+
+  let tabla = rallyData.pilotos.map(p => {
+    const total = Object.values(p.tiempos || {}).reduce((acc, t) => acc + tiempoASegundos(t), 0);
+    return { ...p, total };
+  });
+
+  tabla.sort((a, b) => a.total - b.total);
+  const lider = tabla[0]?.total || 0;
+
+  tabla.forEach((p, i) => {
+    const dif = p.total - lider;
+    const prev = posicionesAnteriores.findIndex(x => x === p.id);
+    let mov = '<span class="same">–</span>';
+    if (prev !== -1) {
+      if (prev > i) mov = '<span class="up">⬆</span>';
+      else if (prev < i) mov = '<span class="down">⬇</span>';
+    }
+    tbody.innerHTML += `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${p.nombre}</td>
+        <td>${p.copiloto || "-"}</td>
+        <td>${p.auto}</td>
+        <td>${p.vehiculo}</td>
+        <td>${p.categoria || "-"}</td>
+        <td>${segundosATiempo(p.total)}</td>
+        <td>${dif ? "+" + segundosATiempo(dif) : "–"}</td>
+        <td>${mov} <button onclick="eliminarPiloto('${p.id}')">🗑️</button></td>
+      </tr>
+    `;
+  });
+
+  posicionesAnteriores = tabla.map(p => p.id);
+}
+
+function resetDatos() {
+  if (confirm("¿Estás seguro de eliminar todos los datos de rally?")) {
+    localStorage.removeItem("rallyData");
+    rallyData = { tramos: ["SS1", "SS2", "SS3"], pilotos: [] };
+    posicionesAnteriores = [];
+    guardar();
+  }
+}
+
+function eliminarPiloto(id) {
+  if (confirm("¿Eliminar este piloto?")) {
+    rallyData.pilotos = rallyData.pilotos.filter(p => p.id !== id);
+    guardar();
+  }
+}
+
+document.getElementById("formAgregar").addEventListener("submit", e => {
+  e.preventDefault();
+  const nombre = document.getElementById("nombre").value;
+  const copiloto = document.getElementById("copiloto").value;
+  const auto = document.getElementById("auto").value;
+  const vehiculo = document.getElementById("vehiculo").value;
+  const categoria = document.getElementById("categoria").value;
+  const id = Date.now().toString();
+  rallyData.pilotos.push({ id, nombre, copiloto, auto, vehiculo, categoria, tiempos: {} });
+  e.target.reset();
+  guardar();
+});
+
+document.getElementById("formTiempo").addEventListener("submit", e => {
+  e.preventDefault();
+  const pilotoId = document.getElementById("pilotoSelect").value;
+  const tramo = document.getElementById("tramoSelect").value;
+  const tiempo = document.getElementById("tiempo").value;
+  const piloto = rallyData.pilotos.find(p => p.id === pilotoId);
+  if (piloto) {
+    piloto.tiempos[tramo] = tiempo;
+    guardar();
+  }
+  e.target.reset();
+});
+
+function actualizarHora() {
+  const now = new Date();
+  const hora = now.toLocaleTimeString();
+  document.getElementById("horaActual").textContent = hora;
+}
+setInterval(actualizarHora, 1000);
+actualizarHora();
+
+guardar();
+</script>
+</body>
+</html>
