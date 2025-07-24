@@ -90,12 +90,12 @@
   </tfoot>
 </table>
 
-<div class="watermark" id="marcaAgua">Marca de agua - <span id="horaActual">--:--:--</span></div>
-<footer>Desarrollado por Tu Nombre o Empresa</footer>
+<div class="watermark" id="marcaAgua">Carjocosa - <span id="horaActual">--:--:--</span></div>
+<footer>Desarrollado por Studio+</footer>
 
 <script>
 let rallyData = JSON.parse(localStorage.getItem("rallyData")) || {
-  tramos: ["SS1", "SS2", "SS3"],
+  tramos: ["SS", "TC1", "TC2", "TC3", "TC4", "TC5", "TC6", "TC7"],
   pilotos: []
 };
 let posicionesAnteriores = [];
@@ -173,7 +173,7 @@ function renderPilotos() {
 function resetDatos() {
   if (confirm("¿Estás seguro de eliminar todos los datos de rally?")) {
     localStorage.removeItem("rallyData");
-    rallyData = { tramos: ["SS1", "SS2", "SS3"], pilotos: [] };
+    rallyData = { tramos: ["SS", "TC1", "TC2", "TC3", "TC4", "TC5", "TC6", "TC7"], pilotos: [] };
     posicionesAnteriores = [];
     guardar();
   }
