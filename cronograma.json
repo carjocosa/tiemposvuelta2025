@@ -1,0 +1,44 @@
+{
+  "etapas": [
+    {
+      "nombre": "1ERA ETAPA",
+      "tramos": [
+        {
+          "tc": 1,
+          "nombre": "PISTA SECTOR LA JOYA",
+          "km": 12.9,
+          "hora": "14:18:00"
+        },
+        {
+          "tc": 2,
+          "nombre": "BUCAY - LAMIRAN",
+          "km": 13.2,
+          "hora": "8:58:00"
+        },
+        {
+          "tc": 3,
+          "nombre": "CHILLANES - VIA MATAPALO",
+          "km": 18.35,
+          "hora": "9:40:00"
+        }
+      ]
+    },
+    {
+      "nombre": "2DA ETAPA",
+      "tramos": [
+        {
+          "tc": 4,
+          "nombre": "PIRCAPAMBA - QUINDIGUA",
+          "km": 27.14,
+          "hora": "11:51:00"
+        },
+        {
+          "tc": 5,
+          "nombre": "Y DE CALAMACA - MIRAFLORES",
+          "km": 29.1,
+          "hora": "13:23:00"
+        }
+      ]
+    }
+  ]
+}

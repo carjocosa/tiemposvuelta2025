@@ -1,151 +1,107 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rally Viewer</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
-  <style>
-    * { font-family: 'Roboto', sans-serif; }
-    body { background-color: #111; color: #eee; padding: 20px; }
-    header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-    header img {
-      height: 40px;
-      margin-right: 10px;
-    }
-    table { width: 100%; border-collapse: collapse; background-color: #222; color: #fff; margin-top: 20px; }
-    th, td { border: 1px solid #444; padding: 8px; text-align: center; }
-    th { background-color: #333; }
-    .up { color: lightgreen; }
-    .down { color: red; }
-    .same { color: gray; }
-    footer {
-      margin-top: 40px;
-      text-align: center;
-      font-size: 14px;
-      color: #888;
-    }
-    .watermark {
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      font-size: 12px;
-      color: rgba(255,255,255,0.2);
-      pointer-events: none;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rally Vuelta al Ecuador 2025</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
-  <header>
-    <img src="https://via.placeholder.com/120x40?text=LOGO" alt="Logo">
-    <h1>📊 Resultados Generales Rally</h1>
-  </header>
+<body class="bg-gray-100 text-gray-800">
 
-  <label>Filtrar por tramo: </label>
-  <select id="tramoFiltro"></select>
-  <label>Filtrar por categoría: </label>
-  <select id="categoriaFiltro"></select>
+<header class="p-4 bg-yellow-600 text-white text-center">
+  <h1 class="text-2xl font-bold">Rally Vuelta al Ecuador 2025</h1>
+  <p>Visualizador Oficial</p>
+</header>
 
-  <table>
-    <thead>
+<main class="p-4 max-w-6xl mx-auto">
+  <div id="menu" class="mb-4"></div>
+  <div id="filters" class="mb-4"></div>
+  <table class="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
+    <thead class="bg-yellow-600 text-white">
       <tr>
-        <th>#</th>
-        <th>Piloto</th>
-        <th>Copiloto</th>
-        <th># Auto</th>
-        <th>Vehículo</th>
-        <th>Categoría</th>
-        <th>Total</th>
-        <th>Dif. Líder</th>
+        <th class="p-2">Pos</th>
+        <th class="p-2">Auto</th>
+        <th class="p-2">Piloto</th>
+        <th class="p-2">Copiloto</th>
+        <th class="p-2">Categoría</th>
+        <th class="p-2">Tiempo</th>
+        <th class="p-2">Gap</th>
       </tr>
     </thead>
-    <tbody id="resultados"></tbody>
+    <tbody id="tabla"></tbody>
   </table>
-
-  <div class="watermark" id="marcaAgua">Carjocosa - <span id="horaActual">--:--:--</span></div>
-  <footer>Desarrollado por Studio +</footer>
+  <canvas id="chart" class="w-full max-h-[400px] mt-8"></canvas>
+</main>
 
 <script>
-function tiempoASegundos(t) {
-  if (!t) return Infinity;
-  const [m, s] = t.split(":").map(Number);
-  return m * 60 + s;
+let cronograma, inscritos, tiempos = [], chart = null;
+
+async function init() {
+  cronograma = await (await fetch('cronograma.json')).json();
+  inscritos = await (await fetch('inscritos.json')).json();
+  renderMenu();
 }
-function segundosATiempo(s) {
-  if (!isFinite(s)) return "-";
-  const m = Math.floor(s / 60);
-  const ss = String(s % 60).padStart(2, '0');
-  return `${m}:${ss}`;
+
+function renderMenu() {
+  const menu = document.getElementById('menu');
+  menu.innerHTML = cronograma.etapas.map(e => \`
+    <div class="mb-2">
+      <h2 class="font-bold">\${e.nombre}</h2>
+      \${e.tramos.map(t => \`<button class="m-1 px-2 py-1 bg-yellow-500 text-white rounded" onclick="loadTC(\${t.tc})">TC\${t.tc}</button>\`).join('')}
+    </div>
+  \`).join('');
 }
-function cargarDatos() {
-  const data = JSON.parse(localStorage.getItem("rallyData")) || { pilotos: [], tramos: [] };
-  const tbody = document.getElementById("resultados");
-  const tramoFiltro = document.getElementById("tramoFiltro");
-  const categoriaFiltro = document.getElementById("categoriaFiltro");
-  const tramoSeleccionado = tramoFiltro?.value || "todos";
-  const categoriaSeleccionada = categoriaFiltro?.value || "todas";
 
-  if (tramoFiltro && tramoFiltro.innerHTML === "") {
-    tramoFiltro.innerHTML = '<option value="todos">Todos</option>';
-    data.tramos.forEach(t => {
-      tramoFiltro.innerHTML += '<option value="' + t + '">' + t + '</option>';
-    });
-  }
-  if (categoriaFiltro && categoriaFiltro.innerHTML === "") {
-    categoriaFiltro.innerHTML = '<option value="todas">Todas</option>';
-    const categoriasUnicas = [...new Set(data.pilotos.map(p => p.categoria))];
-    categoriasUnicas.forEach(c => {
-      if (c) categoriaFiltro.innerHTML += '<option value="' + c + '">' + c + '</option>';
-    });
-  }
+async function loadTC(tc) {
+  const res = await fetch(\`data/tc\${tc}.csv\`);
+  const text = await res.text();
+  const rows = text.trim().split('\n').slice(1);
+  tiempos = rows.map(r => {
+    const [auto, tiempo] = r.split(',');
+    return { auto: parseInt(auto), tiempo_str: tiempo, tiempo_seg: toSec(tiempo) };
+  });
+  renderTable();
+}
 
-  let tabla = data.pilotos
-    .filter(p => categoriaSeleccionada === "todas" || p.categoria === categoriaSeleccionada)
-    .map(p => {
-      let tiempoTotal = 0;
-      if (tramoSeleccionado === "todos") {
-        tiempoTotal = Object.values(p.tiempos || {}).reduce((acc, t) => acc + tiempoASegundos(t), 0);
-      } else {
-        tiempoTotal = tiempoASegundos(p.tiempos?.[tramoSeleccionado]);
-      }
-      return { ...p, total: tiempoTotal };
-    });
+function toSec(t) {
+  const [m, rest] = t.split(':');
+  const [s, ms] = rest.split('.');
+  return parseInt(m)*60 + parseFloat(s + '.' + ms);
+}
 
-  tabla.sort((a, b) => a.total - b.total);
-  const lider = tabla[0]?.total || 0;
-  tbody.innerHTML = "";
-  tabla.forEach((p, i) => {
-    const dif = p.total - lider;
-    tbody.innerHTML += `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${p.nombre}</td>
-        <td>${p.copiloto || "-"}</td>
-        <td>${p.auto}</td>
-        <td>${p.vehiculo}</td>
-        <td>${p.categoria || "-"}</td>
-        <td>${segundosATiempo(p.total)}</td>
-        <td>${dif ? "+" + segundosATiempo(dif) : "–"}</td>
-      </tr>
-    `;
+function renderTable() {
+  let data = tiempos.map(t => {
+    const info = inscritos.find(i => i.auto === t.auto);
+    return {...t, ...info};
+  }).sort((a,b) => a.tiempo_seg - b.tiempo_seg);
+
+  const leader = data[0].tiempo_seg;
+  document.getElementById('tabla').innerHTML = data.map((r,i) => \`
+    <tr class="hover:bg-yellow-100">
+      <td class="p-2">\${i+1}</td>
+      <td class="p-2">\${r.auto}</td>
+      <td class="p-2">\${r.piloto}</td>
+      <td class="p-2">\${r.copiloto}</td>
+      <td class="p-2">\${r.categoria}</td>
+      <td class="p-2">\${r.tiempo_str}</td>
+      <td class="p-2">+\${(r.tiempo_seg - leader).toFixed(2)}s</td>
+    </tr>\`).join('');
+
+  const ctx = document.getElementById('chart').getContext('2d');
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.map(d => '#' + d.auto),
+      datasets: [{ data: data.map(d => d.tiempo_seg - leader), backgroundColor: 'rgba(234,179,8,0.7)' }]
+    },
+    options: { plugins: { legend: { display: false } } }
   });
 }
-document.getElementById("tramoFiltro").addEventListener("change", cargarDatos);
-document.getElementById("categoriaFiltro").addEventListener("change", cargarDatos);
-cargarDatos();
 
-function actualizarHora() {
-  const now = new Date();
-  const hora = now.toLocaleTimeString();
-  document.getElementById("horaActual").textContent = hora;
-}
-setInterval(actualizarHora, 1000);
-actualizarHora();
+init();
 </script>
+
 </body>
 </html>

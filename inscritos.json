@@ -1,0 +1,29 @@
+[
+  {
+    "auto": 16,
+    "categoria": "RALLY2 - R5",
+    "marca": "VOLKSWAGEN",
+    "modelo": "POLO",
+    "piloto": "ALFONSO ANTONIO QUIROLA BUSTOS",
+    "copiloto": "JOSE LEONARDO ROJAS CORDOVA",
+    "ciudad": "GUAYAS"
+  },
+  {
+    "auto": 19,
+    "categoria": "RALLY2 - R5",
+    "marca": "CITROEN",
+    "modelo": "C3",
+    "piloto": "HUGO MARTIN NAVAS PE\u00d1AHERRERA",
+    "copiloto": "DANIEL PATRICIO GALARZA AVILES",
+    "ciudad": "AMBATO"
+  },
+  {
+    "auto": 50,
+    "categoria": "RC4",
+    "marca": "PEUGEOT",
+    "modelo": "2008 R4",
+    "piloto": "MAURICIO XAVIER HERDOIZA HOLGUIN",
+    "copiloto": "JOSE ALVARO SEVILLA CASTRO",
+    "ciudad": "AMBATO"
+  }
+]
